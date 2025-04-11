@@ -18,3 +18,4 @@ export const HeaderTitle = styled.Text`
   font-size: ${theme.typography.title.fontSize}px;
   font-weight: ${theme.typography.title.fontWeight};
 `;
+
