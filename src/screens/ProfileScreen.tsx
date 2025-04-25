@@ -86,4 +86,3 @@ const Email = styled.Text`
 `;
 
 export default ProfileScreen;
-
