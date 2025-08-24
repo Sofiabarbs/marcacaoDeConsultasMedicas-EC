@@ -1,128 +1,137 @@
-package com.fiap.eca.api_marcacao_consultas.service;
- 
+package com.fiap.eca.api_marcacao_consultas.controller;
+
 import com.fiap.eca.api_marcacao_consultas.model.Usuario;
-import com.fiap.eca.api_marcacao_consultas.repository.UsuarioRepository;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
+import com.fiap.eca.api_marcacao_consultas.service.UsuarioService;
+import com.fiap.eca.api_marcacao_consultas.security.JwtTokenProvider;
+import com.fiap.eca.api_marcacao_consultas.dto.LoginRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
- 
-@Service
-public class UsuarioService {
-    private final UsuarioRepository usuarioRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
- 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
-        this.usuarioRepository = usuarioRepository;
+
+@RestController
+@RequestMapping("/usuarios")
+public class UsuarioController {
+    private final UsuarioService usuarioService;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    public UsuarioController(UsuarioService usuarioService, JwtTokenProvider jwtTokenProvider) {
+        this.usuarioService = usuarioService;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
- 
-    public List<Usuario> listarUsuarios() {
-        return usuarioRepository.findAll();
+
+    @GetMapping
+    public ResponseEntity<List<Usuario>> listarUsuarios() {
+        List<Usuario> usuarios = usuarioService.listarUsuarios();
+        return ResponseEntity.ok(usuarios);
     }
- 
-    public Optional<Usuario> buscarUsuarioPorId(Long id) {
-        return usuarioRepository.findById(id);
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> buscarUsuarioPorId(@PathVariable Long id) {
+        Optional<Usuario> usuario = usuarioService.buscarUsuarioPorId(id);
+        return usuario.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
- 
-    public List<Usuario> listarMedicos() {
-        return usuarioRepository.findByTipo("MEDICO");
-    }
- 
-    public List<Usuario> buscarMedicosPorEspecialidade(String especialidade) {
-        // Esta implementação depende de como você relaciona médicos com especialidades
-        // Se você tiver um relacionamento direto, pode usar:
-        // return usuarioRepository.findByTipoAndEspecialidade("MEDICO", especialidade);
- 
-        // Caso contrário, você precisará implementar uma lógica personalizada
-        // Esta é uma implementação simplificada:
-        return usuarioRepository.findByTipo("MEDICO");
-    }
- 
-    public Usuario salvarUsuario(Usuario usuario) {
-        // Verifica se o e-mail já está cadastrado
-        Optional<Usuario> usuarioExistente = usuarioRepository.findByEmail(usuario.getEmail());
-        if (usuarioExistente.isPresent()) {
-            throw new RuntimeException("Erro: Este e-mail já está cadastrado.");
+
+    @GetMapping("/medicos")
+    public ResponseEntity<List<Usuario>> listarMedicos(
+            @RequestParam(required = false) String especialidade) {
+        List<Usuario> medicos;
+        if (especialidade != null && !especialidade.isEmpty()) {
+            medicos = usuarioService.buscarMedicosPorEspecialidade(especialidade);
+        } else {
+            medicos = usuarioService.listarMedicos();
         }
- 
-        // Criptografa a senha antes de salvar
-        usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
-        return usuarioRepository.save(usuario);
+        return ResponseEntity.ok(medicos);
     }
- 
-    public Usuario atualizarUsuario(Long id, Usuario usuario) {
-        Usuario usuarioExistente = usuarioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
- 
-        // Verifica se o e-mail já está sendo usado por outro usuário
-        if (!usuarioExistente.getEmail().equals(usuario.getEmail())) {
-            Optional<Usuario> usuarioComMesmoEmail = usuarioRepository.findByEmail(usuario.getEmail());
-            if (usuarioComMesmoEmail.isPresent()) {
-                throw new RuntimeException("Erro: Este e-mail já está sendo usado por outro usuário.");
+
+    @PostMapping
+    public ResponseEntity<?> criarUsuario(@RequestBody Usuario usuario) {
+        try {
+            Usuario novoUsuario = usuarioService.salvarUsuario(usuario);
+            return ResponseEntity.ok(novoUsuario);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> atualizarUsuario(@PathVariable Long id, @RequestBody Usuario usuario) {
+        try {
+            Usuario usuarioAtualizado = usuarioService.atualizarUsuario(id, usuario);
+            return ResponseEntity.ok(usuarioAtualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> excluirUsuario(@PathVariable Long id) {
+        try {
+            usuarioService.excluirUsuario(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+        try {
+            Usuario usuario = usuarioService.autenticar(loginRequest.getEmail(), loginRequest.getSenha());
+            String token = jwtTokenProvider.gerarToken(usuario.getEmail());
+            return ResponseEntity.ok().body(Map.of("token", token));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais inválidas");
+        }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        try {
+            // Remove "Bearer " do header
+            String token = authHeader.substring(7);
+
+            // Extrai o email do token
+            String email = jwtTokenProvider.obterEmailDoToken(token);
+
+            // Busca o usuário pelo email
+            Usuario usuario = usuarioService.buscarPorEmail(email);
+
+            return ResponseEntity.ok(usuario);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token inválido");
+        }
+    }
+
+    // ⚠️ ENDPOINT TEMPORÁRIO APENAS PARA TESTES - REMOVER EM PRODUÇÃO
+    @PostMapping("/reset-senhas-teste")
+    public ResponseEntity<?> resetarSenhasParaTeste() {
+        try {
+            String senhasTeste = usuarioService.resetarSenhasParaTeste();
+            return ResponseEntity.ok().body(Map.of("message", senhasTeste));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    // Endpoint para admin alterar senha de qualquer usuário
+    @PutMapping("/{id}/senha")
+    public ResponseEntity<?> alterarSenhaUsuario(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        try {
+            String novaSenha = request.get("novaSenha");
+            if (novaSenha == null || novaSenha.trim().isEmpty()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Nova senha é obrigatória");
             }
-        }
- 
-        // Atualiza os campos
-        usuarioExistente.setNome(usuario.getNome());
-        usuarioExistente.setEmail(usuario.getEmail());
- 
-        // Atualiza a senha apenas se uma nova senha for fornecida
-        if (usuario.getSenha() != null && !usuario.getSenha().isEmpty()) {
-            usuarioExistente.setSenha(passwordEncoder.encode(usuario.getSenha()));
-        }
- 
-        // Atualiza o tipo apenas se for fornecido
-        if (usuario.getTipo() != null && !usuario.getTipo().isEmpty()) {
-            usuarioExistente.setTipo(usuario.getTipo());
-        }
- 
-        return usuarioRepository.save(usuarioExistente);
-    }
- 
-    public void excluirUsuario(Long id) {
-        if (!usuarioRepository.existsById(id)) {
-            throw new RuntimeException("Usuário não encontrado");
-        }
-        usuarioRepository.deleteById(id);
-    }
- 
-    public Usuario autenticar(String email, String senha) {
-        Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
- 
-        if (!passwordEncoder.matches(senha, usuario.getSenha())) {
-            throw new RuntimeException("Senha incorreta");
-        }
- 
-        return usuario;
-    }
-    public Usuario buscarPorEmail(String email) {
-        return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-    }
-}
- 
-@Service
-public class UsuarioService {
-    private final UsuarioRepository usuarioRepository;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // ... outros métodos
-
-    public Usuario autenticar(String email, String senha) {
-        Usuario usuario = usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-
-        if (!passwordEncoder.matches(senha, usuario.getSenha())) {
-            throw new RuntimeException("Senha incorreta");
+            Usuario usuario = usuarioService.alterarSenha(id, novaSenha);
+            return ResponseEntity.ok()
+                    .body(Map.of("message", "Senha alterada com sucesso", "usuario", usuario.getNome()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
-
-        return usuario;
-    }
-
-    // NOVO: Método público para buscar usuário por email
-    public Usuario buscarPorEmail(String email) {
-        return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
     }
 }

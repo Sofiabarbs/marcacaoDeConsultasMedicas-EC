@@ -106,7 +106,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit }) => {
 
       return date >= today && date <= maxDate;
    };
-
    const handleDateChange = (text: string) => {
       // Remove todos os caracteres não numéricos
       const numbers = text.replace(/\D/g, '');
@@ -239,7 +238,6 @@ const AppointmentForm: React.FC<AppointmentFormProps> = ({ onSubmit }) => {
                })}
             </TimeSlotsGrid>
          </TimeSlotsContainer>
-
          <Input
             placeholder="Descrição da consulta"
             value={description}
@@ -330,7 +328,6 @@ const TimeSlotsGrid = styled.View`
   flex-wrap: wrap;
   gap: ${theme.spacing.small}px;
 `;
-
 const TimeSlotButton = styled(TouchableOpacity)<{ selected: boolean; disabled: boolean }>`
   background-color: ${(props: { selected: boolean; disabled: boolean }) => 
     props.disabled 
@@ -396,4 +393,4 @@ const SpecialtyText = styled(Text)<{ selected: boolean }>`
   text-align: center;
 `;
 
-export default AppointmentForm; 
+export default AppointmentForm;
