@@ -175,7 +175,8 @@ const UserContainer = styled.View`
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
-  border: 1px solid ${theme.colors.border};
+  border-width: 1px;
+  border-color: ${theme.colors.border};
   shadow-color: #000;
   shadow-offset: 0px 2px;
   shadow-opacity: 0.1;
