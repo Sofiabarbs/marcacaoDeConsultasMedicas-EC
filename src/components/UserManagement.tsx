@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import styled from 'styled-components/native';
-import { ViewStyle, TextStyle, Alert } from 'react-native';
-import { Button, Input, Text } from 'react-native-elements';
-import { adminApiService, AdminUser, ChangePasswordData } from '../services/adminApi';
-import theme from '../styles/theme';
+import React, { useState, useEffect } from "react";
+import styled from "styled-components/native";
+import { ViewStyle, TextStyle, Alert } from "react-native";
+import { Button, Input, Text } from "react-native-elements";
+import {
+  adminApiService,
+  AdminUser,
+  ChangePasswordData,
+} from "../services/adminApi";
+import theme from "../styles/theme";
 
 interface UserManagementProps {
   style?: ViewStyle;
@@ -15,11 +19,11 @@ interface StyledProps {
 
 const getRoleColor = (role: string) => {
   switch (role) {
-    case 'admin':
+    case "admin":
       return theme.colors.error;
-    case 'doctor':
+    case "doctor":
       return theme.colors.primary;
-    case 'patient':
+    case "patient":
       return theme.colors.success;
     default:
       return theme.colors.secondary;
@@ -28,12 +32,12 @@ const getRoleColor = (role: string) => {
 
 const getRoleText = (role: string) => {
   switch (role) {
-    case 'admin':
-      return 'Administrador';
-    case 'doctor':
-      return 'Médico';
-    case 'patient':
-      return 'Paciente';
+    case "admin":
+      return "Administrador";
+    case "doctor":
+      return "Médico";
+    case "patient":
+      return "Paciente";
     default:
       return role;
   }
@@ -43,7 +47,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ style }) => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [changingPassword, setChangingPassword] = useState<string | null>(null);
-  const [newPassword, setNewPassword] = useState('');
+  const [newPassword, setNewPassword] = useState("");
 
   useEffect(() => {
     loadUsers();
@@ -55,7 +59,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ style }) => {
       const usersData = await adminApiService.getAllUsers();
       setUsers(usersData);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar os usuários');
+      Alert.alert("Erro", "Não foi possível carregar os usuários");
     } finally {
       setLoading(false);
     }
@@ -63,25 +67,26 @@ const UserManagement: React.FC<UserManagementProps> = ({ style }) => {
 
   const handleChangePassword = async (userId: string) => {
     if (!newPassword || newPassword.trim().length < 6) {
-      Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres');
+      Alert.alert("Erro", "A senha deve ter pelo menos 6 caracteres");
       return;
     }
 
     try {
       const changeData: ChangePasswordData = {
         userId,
-        newPassword: newPassword.trim()
+        newPassword: newPassword.trim(),
       };
 
       await adminApiService.changeUserPassword(changeData);
-      
-      Alert.alert('Sucesso', 'Senha alterada com sucesso!');
+
+      Alert.alert("Sucesso", "Senha alterada com sucesso!");
       setChangingPassword(null);
-      setNewPassword('');
+      setNewPassword("");
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível alterar a senha');
+      Alert.alert("Erro", "Não foi possível alterar a senha");
     }
   };
+
   const renderUser = (user: AdminUser, index: number) => (
     <UserContainer key={user.id}>
       <UserInfo>
@@ -92,7 +97,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ style }) => {
           {user.specialty && ` - ${user.specialty}`}
         </UserRole>
       </UserInfo>
-      
+
       {changingPassword === user.id ? (
         <PasswordContainer>
           <Input
@@ -113,7 +118,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ style }) => {
               title="Cancelar"
               onPress={() => {
                 setChangingPassword(null);
-                setNewPassword('');
+                setNewPassword("");
               }}
               buttonStyle={[styles.cancelButton]}
               titleStyle={styles.buttonText}
@@ -144,7 +149,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ style }) => {
     <Container style={style}>
       <SectionTitle>Gerenciar Usuários</SectionTitle>
       <SubTitle>Total: {users.length} usuários</SubTitle>
-      
+
       {users.map(renderUser)}
     </Container>
   );
@@ -175,8 +180,7 @@ const UserContainer = styled.View`
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
-  border-width: 1px;
-  border-color: ${theme.colors.border};
+  border: 1px solid ${theme.colors.border};
   shadow-color: #000;
   shadow-offset: 0px 2px;
   shadow-opacity: 0.1;
@@ -206,7 +210,7 @@ const UserRole = styled.Text<StyledProps>`
   font-weight: bold;
   color: ${(props: StyledProps) => getRoleColor(props.role)};
   text-transform: uppercase;
-  background-color: ${(props: StyledProps) => getRoleColor(props.role) + '20'};
+  background-color: ${(props: StyledProps) => getRoleColor(props.role) + "20"};
   padding: 4px 8px;
   border-radius: 12px;
   align-self: flex-start;
@@ -255,9 +259,8 @@ const styles = {
   } as ViewStyle,
   buttonText: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   } as TextStyle,
 };
 
 export default UserManagement;
-
