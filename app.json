@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "marcacaodeconsultasmedicas-ec",
-    "slug": "marcacaodeconsultasmedicas-ec",
+    "name": "marcacaoDeConsultasMedicas",
+    "slug": "marcacaoDeConsultasMedicas",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -10,7 +10,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.pedro.marcacaodeconsultasmedicas-ec"
+      "package": "com.hetec.marcacaoDeConsultasMedicas"
     },
     "extra": {
       "eas": {
